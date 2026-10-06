@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Data Bot — Awwwards Studio</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #110d0c;
+      --bg-card: rgba(22, 17, 16, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.2);
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'Geist Mono', monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg);
+      color: #fafafa;
+      font-family: var(--sans);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-serif-title { font-family: var(--serif); }
+    .font-mono { font-family: var(--mono); }
+
+    /* Interactive Thoughtbot Canvas Background */
+    #heroCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: auto;
+    }
+
+    /* Ambient atmospheric depth */
+    .bg-gradient-overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.03) 0%, rgba(17, 13, 12, 0.85) 60%, #110d0c 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Spotlight Bento Card */
+    .spotlight-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      z-index: 10;
+    }
+
+    .spotlight-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(600px circle at var(--mouse-x, 100px) var(--mouse-y, 100px), rgba(255, 255, 255, 0.06), transparent 40%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .spotlight-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+    /* Animated pulse dot */
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+    .pulse-dot { animation: pulse 1.8s infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-white/20 selection:text-white">
+
+  <!-- Interactive Background Canvas (Pointer Tethering) -->
+  <canvas id="heroCanvas"></canvas>
+  <div class="bg-gradient-overlay"></div>
+
+  <!-- Awwwards Editorial Header -->
+  <header class="h-16 border-b border-white/[0.08] bg-[#110d0c]/80 backdrop-blur-2xl sticky top-0 z-40 px-6 flex items-center justify-between">
+    <!-- Brand -->
+    <!-- Brand & Back Button -->
+    <div class="flex items-center gap-4">
+      <a href="/" class="h-9 w-9 rounded-xl bg-zinc-900/90 border border-white/[0.12] flex items-center justify-center text-white hover:bg-zinc-800 transition-colors shadow-sm" title="Back to Home">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      </a>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="font-serif-title font-normal text-lg tracking-tight text-white">Training Data Bot</span>
+        <span class="text-zinc-600 font-mono">/</span>
+        <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-zinc-800/80 border border-white/[0.08] text-zinc-300">Studio v1.0</span>
+      </div>
+    </div>
+
+    <!-- Center: Interactive Pointer Hint -->
+    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/70 border border-white/[0.08] text-xs text-zinc-400 font-mono">
+      <span class="w-2 h-2 rounded-full bg-white pulse-dot"></span>
+      <span>Hover anywhere to draw kinetic canvas tether lines</span>
+    </div>
+
+    <!-- Right: Telemetry & Actions -->
+    <div class="flex items-center gap-3">
+      <!-- Live Engine Badge -->
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-white/[0.08] text-xs font-mono">
+        <span class="h-2 w-2 rounded-full bg-white animate-pulse"></span>
+        <span class="text-zinc-400">Workers:</span>
+        <span id="badgeWorkers" class="text-white font-medium">15</span>
+      </div>
+
+      <!-- SQLite Cache Badge -->
+      <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-white/[0.08] text-xs font-mono">
+        <span class="text-zinc-400">Cache:</span>
+        <span id="badgeCache" class="text-white font-medium">0.07s (Active)</span>
+      </div>
+
+      <!-- Export Vault Button -->
+      <button id="btnOpenExportModal" class="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 active:scale-[0.98] text-zinc-950 font-semibold text-xs tracking-tight transition-all flex items-center gap-2 shadow-sm">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export Vault
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Bento Grid Workspace -->
+  <main class="relative z-10 flex-1 p-6 max-w-[1680px] mx-auto w-full grid grid-cols-12 gap-5">
+
+    <!-- BENTO 1: Document Vault & Recipe Configuration (3 cols) -->
+    <section class="col-span-12 lg:col-span-3 flex flex-col gap-5">
+      
+      <!-- Ingestion Card -->
+      <div class="spotlight-card p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <h3 class="text-xs font-mono uppercase tracking-wider text-zinc-300">1. Document Vault</h3>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-white/[0.06]">Auto-Route</span>
+        </div>
+
+        <!-- Hidden Real File Input -->
+        <input type="file" id="realFileInput" class="hidden" accept=".pdf,.txt,.md,.json,.csv,.html">
+
+        <!-- Drag & Drop Zone -->
+        <div id="dropBox" class="border border-dashed border-zinc-700/80 hover:border-white/60 rounded-xl p-5 text-center transition-all cursor-pointer bg-zinc-900/40 hover:bg-zinc-900/80 group">
+          <div class="h-10 w-10 rounded-xl bg-zinc-800/80 border border-white/[0.08] flex items-center justify-center mx-auto mb-2 text-zinc-400 group-hover:text-white transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <span class="text-xs font-semibold text-zinc-200 block">Drop file or click to browse</span>
+          <span class="text-[10px] font-mono text-zinc-500 mt-1 block">PDF, TXT, MD, JSON, CSV</span>
+        </div>
+
+        <!-- Quick Document Selectors -->
+        <div class="space-y-1.5">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block">Instant Sample Pre-loads:</span>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button class="doc-preset text-[11px] font-mono py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-white/[0.06] text-zinc-300 hover:text-white transition-colors text-center" data-sample="research">Research.pdf</button>
+            <button class="doc-preset text-[11px] font-mono py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-white/[0.06] text-zinc-300 hover:text-white transition-colors text-center" data-sample="support">Support.txt</button>
+            <button class="doc-preset text-[11px] font-mono py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-white/[0.06] text-zinc-300 hover:text-white transition-colors text-center" data-sample="faq">FAQ.json</button>
+          </div>
+        </div>
+
+        <!-- Active Document Card -->
+        <div class="p-3 rounded-xl bg-zinc-900/90 border border-white/[0.08] flex items-center justify-between">
+          <div class="truncate">
+            <div class="flex items-center gap-1.5">
+              <span id="activeTypeTag" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-white font-bold">PDF</span>
+              <span id="activeDocName" class="text-xs font-semibold text-zinc-200 truncate">Transformer_Research.pdf</span>
+            </div>
+            <span id="activeDocMeta" class="text-[10px] font-mono text-zinc-500 mt-0.5 block">Ready to chunk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Strategy Card -->
+      <div class="spotlight-card p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+            <h3 class="text-xs font-mono uppercase tracking-wider text-zinc-300">2. Generation Recipe</h3>
+          </div>
+        </div>
+
+        <!-- Recipe Tabs -->
+        <div class="grid grid-cols-3 gap-1 p-1 bg-zinc-950/80 rounded-xl border border-white/[0.08]">
+          <button class="task-selector text-xs font-medium py-1.5 rounded-lg bg-zinc-800 text-white shadow-sm transition-all text-center" data-task="qa">Q&A Pairs</button>
+          <button class="task-selector text-xs font-medium py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all text-center" data-task="summary">Summary</button>
+          <button class="task-selector text-xs font-medium py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all text-center" data-task="classify">Classify</button>
+        </div>
+
+        <!-- Fine Tuning Controls -->
+        <div class="space-y-3.5 text-xs font-mono">
+          <div>
+            <div class="flex justify-between text-zinc-400 mb-1">
+              <span>Concurrency Workers</span>
+              <span id="labelConcurrency" class="text-white font-bold">15 Workers</span>
+            </div>
+            <input id="sliderConcurrency" type="range" min="1" max="25" value="15" class="w-full accent-white h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-zinc-400 mb-1">
+              <span>Quality Threshold</span>
+              <span id="labelThreshold" class="text-white font-bold">0.70</span>
+            </div>
+            <input id="sliderThreshold" type="range" min="0.5" max="0.95" step="0.05" value="0.70" class="w-full accent-white h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-zinc-400">SQLite Smart Cache</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-mono font-bold">60x ACCELERATED</span>
+          </div>
+        </div>
+
+        <!-- Dispatch Pipeline Button -->
+        <button id="btnStartPipeline" class="w-full mt-2 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs tracking-tight transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Dispatch Batch Pipeline
+        </button>
+      </div>
+
+    </section>
+
+    <!-- BENTO 2 & 3: Center Stage Studio & 3D Rotating Lattice (6 cols) -->
+    <section class="col-span-12 lg:col-span-6 flex flex-col gap-5">
+      
+      <!-- Telemetry Bar with Thoughtbot 3D Rotating Lattice Canvas -->
+      <div class="spotlight-card p-4 flex items-center justify-between overflow-hidden">
+        <div class="flex items-center gap-4">
+          <!-- Thoughtbot 3D Rotating Wireframe Lattice (Orb) -->
+          <div class="relative w-14 h-14 shrink-0 rounded-xl bg-zinc-900/60 border border-white/[0.08] flex items-center justify-center overflow-hidden">
+            <canvas id="latticeCanvas" class="w-full h-full"></canvas>
+          </div>
+
+          <div>
+            <span id="liveStatusText" class="text-sm font-serif-title font-medium text-white block">Engine Ready</span>
+            <span class="text-[11px] font-mono text-zinc-400">Throughput: <b class="text-white">8,712 docs/s</b> · 0 errors</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-5 text-xs font-mono">
+          <div class="text-right">
+            <span class="text-[10px] text-zinc-500 block">DATASET EXAMPLES</span>
+            <span id="statGenCount" class="font-bold text-white text-sm">0 Examples</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-zinc-500 block">CACHE LATENCY</span>
+            <span class="font-bold text-white text-sm">0.07s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio Inspector Card -->
+      <div class="spotlight-card flex-1 p-5 flex flex-col min-h-[560px]">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-4 shrink-0">
+          <!-- View Modes -->
+          <div class="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-white/[0.08]">
+            <button id="tabCards" class="view-tab text-xs px-3 py-1 rounded-lg bg-zinc-800 text-white font-medium transition-colors">Dataset Cards</button>
+            <button id="tabTable" class="view-tab text-xs px-3 py-1 rounded-lg text-zinc-400 hover:text-white font-medium transition-colors">Data Table</button>
+            <button id="tabJsonl" class="view-tab text-xs px-3 py-1 rounded-lg text-zinc-400 hover:text-white font-medium transition-colors font-mono">Raw JSONL</button>
+          </div>
+
+          <!-- Token Count Badge -->
+          <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-zinc-900 border border-white/[0.08] text-zinc-400">
+            Total Tokens: <span id="tokenCounter" class="text-white font-bold">0</span>
+          </span>
+        </div>
+
+        <!-- View 1: Scrollable Studio Cards Canvas -->
+        <div id="viewCardsContainer" class="flex-1 overflow-y-auto space-y-3.5 pr-1 text-xs">
+          <!-- Empty State -->
+          <div id="emptyState" class="h-64 flex flex-col items-center justify-center text-center p-6 text-zinc-500">
+            <svg class="w-10 h-10 mb-3 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <p class="text-sm font-serif-title text-zinc-400">Document vault ready</p>
+            <p class="text-xs font-mono text-zinc-500 mt-1">Click "Dispatch Batch Pipeline" to generate training examples</p>
+          </div>
+        </div>
+
+        <!-- View 2: Data Table (Hidden by default) -->
+        <div id="viewTableContainer" class="hidden flex-1 overflow-x-auto text-xs font-mono">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-white/[0.08] text-[10px] text-zinc-400 uppercase">
+                <th class="py-2.5 px-3">ID</th>
+                <th class="py-2.5 px-3">Input / Prompt</th>
+                <th class="py-2.5 px-3">Target Completion</th>
+                <th class="py-2.5 px-3 text-right">Tokens</th>
+                <th class="py-2.5 px-3 text-right">Quality</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-white/[0.04]">
+              <!-- Dynamic Table Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- View 3: Raw JSONL Container (Hidden by default) -->
+        <div id="viewJsonlContainer" class="hidden flex-1 flex flex-col font-mono text-xs">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
+            <span class="text-[10px] text-zinc-500">FORMAT: OPENAI / HUGGING FACE FINE-TUNING JSONL</span>
+            <button id="btnCopyJsonl" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[11px] text-zinc-200 transition-colors flex items-center gap-1.5">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              Copy JSONL
+            </button>
+          </div>
+          <pre id="jsonlContent" class="flex-1 overflow-y-auto bg-zinc-950 p-4 rounded-xl border border-white/[0.06] text-white/90 leading-relaxed selection:bg-white/20 whitespace-pre-wrap"></pre>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- BENTO 4: Quality Radar & Partitions Hub (3 cols) -->
+    <section class="col-span-12 lg:col-span-3 flex flex-col gap-5">
+
+      <!-- Radial Quality Matrix Card -->
+      <div class="spotlight-card p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h3 class="text-xs font-mono uppercase tracking-wider text-zinc-300">Quality Radar</h3>
+          </div>
+          <span id="labelPassRate" class="text-[10px] font-mono text-white font-bold px-2 py-0.5 rounded-full bg-white/10 border border-white/20">100% PASS</span>
+        </div>
+
+        <!-- Radial Meters (Pure White) -->
+        <div class="space-y-4">
+          <!-- Metric 1: Coherence -->
+          <div class="flex items-center gap-3">
+            <div class="relative w-12 h-12 shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path class="text-zinc-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                <path id="ringCoherence" class="text-white stroke-current" stroke-width="3" stroke-dasharray="98, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              </svg>
+              <span id="scoreCoherence" class="absolute text-[11px] font-mono font-bold text-white">98%</span>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-white block">Coherence</span>
+              <span class="text-[10px] text-zinc-400 font-mono">Structural & syntax flow</span>
+            </div>
+          </div>
+
+          <!-- Metric 2: Toxicity Clean -->
+          <div class="flex items-center gap-3">
+            <div class="relative w-12 h-12 shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path class="text-zinc-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                <path id="ringToxicity" class="text-white stroke-current" stroke-width="3" stroke-dasharray="100, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              </svg>
+              <span id="scoreToxicity" class="absolute text-[11px] font-mono font-bold text-white">100%</span>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-white block">Toxicity Clean</span>
+              <span class="text-[10px] text-zinc-400 font-mono">Zero toxic or biased patterns</span>
+            </div>
+          </div>
+
+          <!-- Metric 3: Diversity -->
+          <div class="flex items-center gap-3">
+            <div class="relative w-12 h-12 shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path class="text-zinc-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                <path id="ringDiversity" class="text-white stroke-current" stroke-width="3" stroke-dasharray="94, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              </svg>
+              <span id="scoreDiversity" class="absolute text-[11px] font-mono font-bold text-white">94%</span>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-white block">Lexical Diversity</span>
+              <span class="text-[10px] text-zinc-400 font-mono">High vocabulary richness</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Formats & Partitions Card -->
+      <div class="spotlight-card p-5 flex flex-col gap-4 flex-1 justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+              <h3 class="text-xs font-mono uppercase tracking-wider text-zinc-300">Data Partitions</h3>
+            </div>
+            <span class="text-[10px] font-mono text-zinc-400">80 / 10 / 10</span>
+          </div>
+
+          <!-- Partition Distribution Bar -->
+          <div class="h-2 w-full flex rounded-full overflow-hidden mb-3 bg-zinc-800">
+            <div class="bg-white h-full" style="width: 80%;"></div>
+            <div class="bg-zinc-400 h-full" style="width: 10%;"></div>
+            <div class="bg-zinc-600 h-full" style="width: 10%;"></div>
+          </div>
+
+          <div class="space-y-1.5 text-[11px] font-mono">
+            <div class="flex justify-between items-center p-2 rounded-lg bg-zinc-900/60 border border-white/[0.04]">
+              <span class="text-zinc-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-white"></span> Train (80%)</span>
+              <span id="partTrainCount" class="text-white font-bold">0 ex</span>
+            </div>
+            <div class="flex justify-between items-center p-2 rounded-lg bg-zinc-900/60 border border-white/[0.04]">
+              <span class="text-zinc-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-zinc-400"></span> Val (10%)</span>
+              <span id="partValCount" class="text-white font-bold">0 ex</span>
+            </div>
+            <div class="flex justify-between items-center p-2 rounded-lg bg-zinc-900/60 border border-white/[0.04]">
+              <span class="text-zinc-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-zinc-600"></span> Test (10%)</span>
+              <span id="partTestCount" class="text-white font-bold">0 ex</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <button class="btn-quick-export px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/[0.08] text-xs font-mono text-zinc-200 transition-colors text-center" data-fmt="jsonl">
+            ↓ .jsonl
+          </button>
+          <button class="btn-quick-export px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/[0.08] text-xs font-mono text-zinc-200 transition-colors text-center" data-fmt="csv">
+            ↓ .csv
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Export Vault Modal Dialog -->
+  <div id="exportModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="spotlight-card w-full max-w-xl p-6 flex flex-col gap-5 border border-white/[0.12] bg-[#140f0e] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div class="flex items-center gap-2">
+          <div class="h-8 w-8 rounded-lg bg-white/10 text-white flex items-center justify-center font-bold">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white tracking-tight">Export Training Vault</h3>
+            <p class="text-[11px] text-zinc-400">Download formatted fine-tuning packages</p>
+          </div>
+        </div>
+        <button id="btnCloseModal" class="h-7 w-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors">✕</button>
+      </div>
+
+      <!-- Format selector -->
+      <div class="space-y-2">
+        <label class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Format</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button class="modal-format-btn px-3 py-2 rounded-xl bg-zinc-800 border border-white/40 text-white text-xs font-mono text-center" data-fmt="jsonl">OpenAI JSONL</button>
+          <button class="modal-format-btn px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/[0.06] text-zinc-400 hover:text-white text-xs font-mono text-center" data-fmt="csv">CSV Spreadsheet</button>
+          <button class="modal-format-btn px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/[0.06] text-zinc-400 hover:text-white text-xs font-mono text-center" data-fmt="json">Alpaca JSON</button>
+        </div>
+      </div>
+
+      <!-- Partitions preview -->
+      <div class="p-3.5 rounded-xl bg-zinc-950/70 border border-white/[0.06] space-y-2">
+        <div class="flex justify-between text-xs font-mono">
+          <span class="text-zinc-400">Package Contents:</span>
+          <span class="text-white font-bold">Partitioned .ZIP Package</span>
+        </div>
+        <div class="text-[11px] font-mono text-zinc-400 space-y-1">
+          <div>• <code>train.jsonl</code> (80% partition)</div>
+          <div>• <code>val.jsonl</code> (10% partition)</div>
+          <div>• <code>test.jsonl</code> (10% partition)</div>
+          <div>• <code>DATASET_INFO.txt</code> (Provenance & Quality Audit)</div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button id="btnCancelModal" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-medium text-zinc-300 transition-colors">Cancel</button>
+        <button id="btnDownloadArchive" class="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs tracking-tight transition-all active:scale-[0.98] shadow-sm flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Package (.zip)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sonner Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 rounded-xl bg-zinc-900/95 border border-white/20 text-xs text-white shadow-2xl flex items-center gap-3 transition-all transform translate-y-20 opacity-0 pointer-events-none z-50 backdrop-blur-xl">
+    <div class="h-6 w-6 rounded-full bg-white/20 text-white flex items-center justify-center font-bold">✓</div>
+    <span id="toastMsg" class="font-medium">Notification message</span>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const TAU = Math.PI * 2;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    /* =========================================================================
+       1. THOUGHTBOT HERO CANVAS: POINTER TETHERING CONSTELLATION
+       ========================================================================= */
+    const heroCanvas = document.getElementById('heroCanvas');
+    const heroCtx = heroCanvas.getContext('2d');
+    let heroW = 0, heroH = 0;
+    let particles = [];
+    const PARTICLE_COUNT = window.innerWidth < 768 ? 40 : 85;
+    let mouse = { x: null, y: null };
+
+    function resizeHero() {
+      heroW = window.innerWidth;
+      heroH = window.innerHeight;
+      heroCanvas.width = heroW * DPR;
+      heroCanvas.height = heroH * DPR;
+      heroCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+
+    function initHeroParticles() {
+      particles = [];
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push({
+          x: Math.random() * heroW,
+          y: Math.random() * heroH,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: (Math.random() - 0.5) * 0.6,
+          radius: 1.6 + Math.random() * 1.2
+        });
+      }
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    window.addEventListener('mouseleave', () => {
+      mouse.x = null;
+      mouse.y = null;
+    });
+
+    function updateHero() {
+      heroCtx.clearRect(0, 0, heroW, heroH);
+
+      const connectDist = Math.min(heroW, heroH) * 0.16;
+      const connectDistSq = connectDist * connectDist;
+
+      const pointerDist = Math.min(heroW, heroH) * 0.28;
+      const pointerDistSq = pointerDist * pointerDist;
+
+      heroCtx.lineWidth = 0.75;
+      heroCtx.strokeStyle = 'rgba(245, 240, 232, 1)';
+
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        p1.vx += (Math.random() - 0.5) * 0.04;
+        p1.vy += (Math.random() - 0.5) * 0.04;
+        p1.vx *= 0.985;
+        p1.vy *= 0.985;
+        p1.x += p1.vx;
+        p1.y += p1.vy;
+
+        if (p1.x < -10) p1.x = heroW + 10;
+        if (p1.x > heroW + 10) p1.x = -10;
+        if (p1.y < -10) p1.y = heroH + 10;
+        if (p1.y > heroH + 10) p1.y = -10;
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dSq = dx * dx + dy * dy;
+
+          if (dSq < connectDistSq) {
+            const d = Math.sqrt(dSq);
+            heroCtx.globalAlpha = (1 - d / connectDist) * 0.15;
+            heroCtx.beginPath();
+            heroCtx.moveTo(p1.x, p1.y);
+            heroCtx.lineTo(p2.x, p2.y);
+            heroCtx.stroke();
+          }
+        }
+
+        // Pure white mouse tether lines
+        if (mouse.x !== null && mouse.y !== null) {
+          const mdx = p1.x - mouse.x;
+          const mdy = p1.y - mouse.y;
+          const mDistSq = mdx * mdx + mdy * mdy;
+
+          if (mDistSq < pointerDistSq) {
+            const mDist = Math.sqrt(mDistSq);
+            heroCtx.strokeStyle = 'rgba(255, 255, 255, 1)';
+            heroCtx.globalAlpha = (1 - mDist / pointerDist) * 0.55;
+            heroCtx.lineWidth = 0.85;
+            heroCtx.beginPath();
+            heroCtx.moveTo(mouse.x, mouse.y);
+            heroCtx.lineTo(p1.x, p1.y);
+            heroCtx.stroke();
+            heroCtx.strokeStyle = 'rgba(245, 240, 232, 1)';
+            heroCtx.lineWidth = 0.75;
+          }
+        }
+      }
+
+      heroCtx.globalAlpha = 0.85;
+      heroCtx.fillStyle = 'rgba(245, 240, 232, 1)';
+      heroCtx.beginPath();
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        heroCtx.moveTo(p.x + p.radius, p.y);
+        heroCtx.arc(p.x, p.y, p.radius, 0, TAU);
+      }
+      heroCtx.fill();
+
+      if (mouse.x !== null && mouse.y !== null) {
+        heroCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        heroCtx.beginPath();
+        heroCtx.arc(mouse.x, mouse.y, 3, 0, TAU);
+        heroCtx.fill();
+      }
+
+      heroCtx.globalAlpha = 1;
+      requestAnimationFrame(updateHero);
+    }
+
+    /* =========================================================================
+       2. THOUGHTBOT 3D ROTATING GEOMETRIC LATTICE (ORB)
+       ========================================================================= */
+    const latticeCanvas = document.getElementById('latticeCanvas');
+    const latticeCtx = latticeCanvas.getContext('2d');
+    let latW = 0, latH = 0;
+    let orbNodes = [];
+    const ORB_COUNT = 24;
+    let orbAngle = 0;
+    let isGenerating = false;
+
+    function resizeLattice() {
+      latW = latticeCanvas.parentElement.offsetWidth;
+      latH = latticeCanvas.parentElement.offsetHeight;
+      latticeCanvas.width = latW * DPR;
+      latticeCanvas.height = latH * DPR;
+      latticeCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+
+    function initOrbNodes() {
+      orbNodes = [];
+      const cx = latW * 0.5;
+      const cy = latH * 0.5;
+      for (let i = 0; i < ORB_COUNT; i++) {
+        orbNodes.push({
+          x: cx + (Math.random() - 0.5) * 20,
+          y: cy + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4
+        });
+      }
+    }
+
+    function updateLattice() {
+      latticeCtx.clearRect(0, 0, latW, latH);
+
+      const cx = latW * 0.5;
+      const cy = latH * 0.5;
+      const radiusX = latW * 0.38;
+      const radiusY = latH * 0.38;
+
+      orbAngle += isGenerating ? 0.015 : 0.0035;
+
+      const cosA = Math.cos(orbAngle);
+      const sinA = Math.sin(orbAngle);
+
+      for (let i = 0; i < orbNodes.length; i++) {
+        const n = orbNodes[i];
+        n.vx += (Math.random() - 0.5) * (isGenerating ? 0.5 : 0.2);
+        n.vy += (Math.random() - 0.5) * (isGenerating ? 0.5 : 0.2);
+        n.vx *= 0.94;
+        n.vy *= 0.94;
+
+        const dx = n.x - cx;
+        const dy = n.y - cy;
+        const rotX = dx * cosA + dy * sinA;
+        const rotY = -dx * sinA + dy * cosA;
+        const normX = rotX / radiusX;
+        const normY = rotY / radiusY;
+        const hyp = Math.hypot(normX, normY);
+
+        if (hyp > 1) {
+          const excess = hyp - 1;
+          n.vx += -(normX / hyp) * excess * 6 * cosA;
+          n.vy += -(normY / hyp) * excess * 6 * sinA;
+        }
+
+        n.x += n.vx;
+        n.y += n.vy;
+      }
+
+      // Draw wireframe edges
+      const edgeThreshold = latW * 0.55;
+      const edgeThreshSq = edgeThreshold * edgeThreshold;
+
+      latticeCtx.lineWidth = 0.75;
+      latticeCtx.strokeStyle = isGenerating ? 'rgba(255, 255, 255, 0.9)' : 'rgba(245, 240, 232, 0.7)';
+
+      for (let i = 0; i < orbNodes.length; i++) {
+        for (let j = i + 1; j < orbNodes.length; j++) {
+          const dx = orbNodes[i].x - orbNodes[j].x;
+          const dy = orbNodes[i].y - orbNodes[j].y;
+          const dSq = dx * dx + dy * dy;
+
+          if (dSq < edgeThreshSq) {
+            const d = Math.sqrt(dSq);
+            latticeCtx.globalAlpha = (1 - d / edgeThreshold) * (isGenerating ? 0.55 : 0.28);
+            latticeCtx.beginPath();
+            latticeCtx.moveTo(orbNodes[i].x, orbNodes[i].y);
+            latticeCtx.lineTo(orbNodes[j].x, orbNodes[j].y);
+            latticeCtx.stroke();
+          }
+        }
+      }
+
+      latticeCtx.fillStyle = '#ffffff';
+      latticeCtx.beginPath();
+      for (let i = 0; i < orbNodes.length; i++) {
+        latticeCtx.moveTo(orbNodes[i].x + 1.8, orbNodes[i].y);
+        latticeCtx.arc(orbNodes[i].x, orbNodes[i].y, 1.8, 0, TAU);
+      }
+      latticeCtx.fill();
+      latticeCtx.globalAlpha = 1;
+
+      requestAnimationFrame(updateLattice);
+    }
+
+    /* =========================================================================
+       3. APPLICATION STATE & UI LOGIC
+       ========================================================================= */
+    let currentTask = "qa";
+    let currentView = "cards";
+    let activeExamples = [];
+    let selectedExportFmt = "jsonl";
+
+    // Spotlight cursor tracker
+    document.querySelectorAll('.spotlight-card').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+      });
+    });
+
+    // Toast helper
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimer;
+    function showToast(msg) {
+      clearTimeout(toastTimer);
+      toastMsg.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // View toggler
+    function setView(view) {
+      currentView = view;
+      const views = {
+        cards: document.getElementById('viewCardsContainer'),
+        table: document.getElementById('viewTableContainer'),
+        jsonl: document.getElementById('viewJsonlContainer')
+      };
+      const tabs = {
+        cards: document.getElementById('tabCards'),
+        table: document.getElementById('tabTable'),
+        jsonl: document.getElementById('tabJsonl')
+      };
+
+      Object.keys(views).forEach(k => {
+        if (k === view) {
+          views[k].classList.remove('hidden');
+          tabs[k].className = "view-tab text-xs px-3 py-1 rounded-lg bg-zinc-800 text-white font-medium transition-colors";
+        } else {
+          views[k].classList.add('hidden');
+          tabs[k].className = "view-tab text-xs px-3 py-1 rounded-lg text-zinc-400 hover:text-white font-medium transition-colors";
+        }
+      });
+    }
+
+    document.getElementById('tabCards').addEventListener('click', () => setView('cards'));
+    document.getElementById('tabTable').addEventListener('click', () => setView('table'));
+    document.getElementById('tabJsonl').addEventListener('click', () => setView('jsonl'));
+
+    // Copy JSONL
+    document.getElementById('btnCopyJsonl').addEventListener('click', () => {
+      const pre = document.getElementById('jsonlContent');
+      navigator.clipboard.writeText(pre.textContent).then(() => {
+        showToast('JSONL copied to clipboard');
+      });
+    });
+
+    // Task selector
+    document.querySelectorAll('.task-selector').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.task-selector').forEach(b => {
+          b.className = "task-selector text-xs font-medium py-1.5 rounded-lg text-zinc-400 hover:text-white transition-all text-center";
+        });
+        btn.className = "task-selector text-xs font-medium py-1.5 rounded-lg bg-zinc-800 text-white shadow-sm transition-all text-center";
+        currentTask = btn.getAttribute('data-task');
+        showToast(`Selected generation recipe: ${btn.textContent}`);
+      });
+    });
+
+    // Sliders
+    const sConc = document.getElementById('sliderConcurrency');
+    const lConc = document.getElementById('labelConcurrency');
+    const badgeWorkers = document.getElementById('badgeWorkers');
+    sConc.addEventListener('input', (e) => {
+      lConc.textContent = `${e.target.value} Workers`;
+      badgeWorkers.textContent = e.target.value;
+    });
+
+    const sThresh = document.getElementById('sliderThreshold');
+    const lThresh = document.getElementById('labelThreshold');
+    sThresh.addEventListener('input', (e) => {
+      lThresh.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+
+    // Sample preloads
+    document.querySelectorAll('.doc-preset').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const sampleKey = btn.getAttribute('data-sample');
+        try {
+          btn.disabled = true;
+          const res = await fetch(`/api/load-sample?sample_name=${sampleKey}`, { method: 'POST' });
+          const data = await res.json();
+          btn.disabled = false;
+          if (data.success) {
+            document.getElementById('activeDocName').textContent = data.filename;
+            document.getElementById('activeDocMeta').textContent = `${data.size_kb} KB · ${data.chunks_count} chunks extracted`;
+            document.getElementById('activeTypeTag').textContent = data.filename.split('.').pop().toUpperCase();
+            showToast(`Loaded ${data.filename} (${data.chunks_count} chunks)`);
+          }
+        } catch (err) {
+          btn.disabled = false;
+          showToast(`Error loading sample: ${err.message}`);
+        }
+      });
+    });
+
+    // Real File Upload
+    const dropBox = document.getElementById('dropBox');
+    const realFileInput = document.getElementById('realFileInput');
+
+    dropBox.addEventListener('click', () => realFileInput.click());
+    realFileInput.addEventListener('change', async (e) => {
+      if (e.target.files && e.target.files[0]) {
+        await uploadFile(e.target.files[0]);
+      }
+    });
+
+    dropBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropBox.classList.add('border-white', 'bg-zinc-900/80');
+    });
+    dropBox.addEventListener('dragleave', () => {
+      dropBox.classList.remove('border-white', 'bg-zinc-900/80');
+    });
+    dropBox.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dropBox.classList.remove('border-white', 'bg-zinc-900/80');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        await uploadFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    async function uploadFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      showToast(`Uploading ${file.name}...`);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('activeDocName').textContent = data.filename;
+          document.getElementById('activeDocMeta').textContent = `${data.size_kb} KB · ${data.chunks_count} chunks extracted`;
+          document.getElementById('activeTypeTag').textContent = data.filename.split('.').pop().toUpperCase();
+          showToast(`Successfully ingested ${data.filename}`);
+        } else {
+          showToast(`Upload failed: ${data.detail || 'Unknown error'}`);
+        }
+      } catch (err) {
+        showToast(`Upload error: ${err.message}`);
+      }
+    }
+
+    /* =========================================================================
+       4. REAL-TIME BATCH GENERATION (SSE STREAMING)
+       ========================================================================= */
+    const btnStart = document.getElementById('btnStartPipeline');
+    const liveStatusText = document.getElementById('liveStatusText');
+    const statGenCount = document.getElementById('statGenCount');
+    const tokenCounter = document.getElementById('tokenCounter');
+    const viewCards = document.getElementById('viewCardsContainer');
+    const tableBody = document.getElementById('tableBody');
+    const jsonlContent = document.getElementById('jsonlContent');
+
+    btnStart.addEventListener('click', async () => {
+      btnStart.disabled = true;
+      btnStart.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Synthesizing...`;
+      liveStatusText.textContent = `Dispatching with ${sConc.value} workers...`;
+      isGenerating = true;
+
+      // Clear existing examples
+      activeExamples = [];
+      viewCards.innerHTML = '';
+      tableBody.innerHTML = '';
+      jsonlContent.textContent = '';
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            task_type: currentTask,
+            concurrency: parseInt(sConc.value, 10),
+            quality_threshold: parseFloat(sThresh.value)
+          })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop(); // Keep partial line
+
+          for (const block of lines) {
+            if (!block.trim()) continue;
+            const dataLine = block.split('\n').find(l => l.startsWith('data: '));
+            if (!dataLine) continue;
+
+            try {
+              const payload = JSON.parse(dataLine.replace('data: ', ''));
+
+              if (payload.event === 'progress') {
+                liveStatusText.textContent = `Generating: ${payload.completed} / ${payload.total} Chunks`;
+                if (payload.example && payload.example.input) {
+                  addExample(payload.example);
+                }
+              } else if (payload.event === 'complete') {
+                liveStatusText.textContent = `Completed • ${payload.quality_score * 100}% Quality Pass`;
+                statGenCount.textContent = `${payload.total_generated} Examples`;
+                updatePartitions(payload.total_generated);
+                showToast(`Batch finished: ${payload.total_generated} training examples created!`);
+              } else if (payload.event === 'error') {
+                showToast(`Error: ${payload.message}`);
+              }
+            } catch (jsonErr) {
+              console.error("SSE parse error", jsonErr);
+            }
+          }
+        }
+      } catch (err) {
+        showToast(`Generation failed: ${err.message}`);
+      } finally {
+        isGenerating = false;
+        btnStart.disabled = false;
+        btnStart.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Dispatch Batch Pipeline`;
+      }
+    });
+
+    function addExample(ex) {
+      activeExamples.push(ex);
+      const indexNum = activeExamples.length;
+
+      // 1. Append Card
+      const card = document.createElement('div');
+      card.className = "p-4 rounded-xl bg-zinc-900/60 border border-white/[0.06] hover:border-white/30 transition-all";
+      card.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-white font-bold">#${String(indexNum).padStart(3, '0')}</span>
+            <span class="text-[11px] font-mono text-zinc-400">${ex.id} · ${ex.tokens} tokens</span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-semibold">SCORE ${ex.quality_score}</span>
+        </div>
+        <div class="space-y-2">
+          <div class="text-zinc-200 font-medium">
+            <span class="text-zinc-500 font-mono mr-1">Q:</span> ${ex.input}
+          </div>
+          <div class="text-zinc-400 text-[11px] font-mono bg-zinc-950/80 p-2.5 rounded-lg border border-white/[0.04]">
+            <span class="text-white">A:</span> ${ex.output}
+          </div>
+        </div>
+      `;
+      viewCards.appendChild(card);
+
+      // 2. Append Table Row
+      const row = document.createElement('tr');
+      row.className = "hover:bg-zinc-900/40 transition-colors";
+      row.innerHTML = `
+        <td class="py-3 px-3 font-bold text-white">#${String(indexNum).padStart(3, '0')}</td>
+        <td class="py-3 px-3 text-zinc-200 max-w-xs truncate">${ex.input}</td>
+        <td class="py-3 px-3 text-zinc-400 max-w-sm truncate">${ex.output}</td>
+        <td class="py-3 px-3 text-right text-zinc-400">${ex.tokens}</td>
+        <td class="py-3 px-3 text-right font-bold text-white">${ex.quality_score}</td>
+      `;
+      tableBody.appendChild(row);
+
+      // 3. Append to Raw JSONL
+      const jsonLine = JSON.stringify({
+        messages: [
+          { role: "system", content: "You are an AI assistant specialized in fine-tuning." },
+          { role: "user", content: ex.input },
+          { role: "assistant", content: ex.output }
+        ],
+        metadata: { id: ex.id, tokens: ex.tokens, score: ex.quality_score }
+      });
+      jsonlContent.textContent += (jsonlContent.textContent ? '\n\n' : '') + jsonLine;
+
+      // Update token counter & stats
+      const totalTokens = activeExamples.reduce((sum, item) => sum + item.tokens, 0);
+      tokenCounter.textContent = totalTokens.toLocaleString();
+      statGenCount.textContent = `${activeExamples.length} Examples`;
+    }
+
+    function updatePartitions(total) {
+      const train = Math.round(total * 0.8);
+      const val = Math.round(total * 0.1);
+      const test = total - train - val;
+      document.getElementById('partTrainCount').textContent = `${train} ex`;
+      document.getElementById('partValCount').textContent = `${val} ex`;
+      document.getElementById('partTestCount').textContent = `${test} ex`;
+    }
+
+    /* =========================================================================
+       5. DATASET EXPORT VAULT
+       ========================================================================= */
+    const modal = document.getElementById('exportModal');
+    const btnOpenModal = document.getElementById('btnOpenExportModal');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+    const btnCancelModal = document.getElementById('btnCancelModal');
+    const btnDownloadArchive = document.getElementById('btnDownloadArchive');
+
+    function openModal() { modal.classList.remove('hidden'); }
+    function closeModal() { modal.classList.add('hidden'); }
+
+    btnOpenModal.addEventListener('click', openModal);
+    btnCloseModal.addEventListener('click', closeModal);
+    btnCancelModal.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+
+    document.querySelectorAll('.modal-format-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.modal-format-btn').forEach(b => {
+          b.className = "modal-format-btn px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/[0.06] text-zinc-400 hover:text-white text-xs font-mono text-center";
+        });
+        btn.className = "modal-format-btn px-3 py-2 rounded-xl bg-zinc-800 border border-white/40 text-white text-xs font-mono text-center";
+        selectedExportFmt = btn.getAttribute('data-fmt');
+      });
+    });
+
+    btnDownloadArchive.addEventListener('click', async () => {
+      closeModal();
+      await triggerExport(selectedExportFmt, true);
+    });
+
+    document.querySelectorAll('.btn-quick-export').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const fmt = btn.getAttribute('data-fmt');
+        await triggerExport(fmt, false);
+      });
+    });
+
+    async function triggerExport(format, split) {
+      showToast(`Exporting ${format.toUpperCase()}${split ? ' partition vault (.zip)' : ''}...`);
+      try {
+        const res = await fetch('/api/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            format: format,
+            split: split
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Export failed');
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = split ? `training_vault_package.zip` : `training_dataset.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast(`Downloaded ${a.download}`);
+      } catch (err) {
+        showToast(`Export error: ${err.message}`);
+      }
+    }
+
+    // Initialize all visual engines
+    window.addEventListener('resize', () => {
+      resizeHero();
+      resizeLattice();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeHero();
+      initHeroParticles();
+      updateHero();
+
+      resizeLattice();
+      initOrbNodes();
+      updateLattice();
+    });
+  </script>
+</body>
+</html>

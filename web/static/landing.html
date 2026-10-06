@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Training Data Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* CSS Reset and Variables */
+:root {
+  --bg-dark: #110d0c;
+  --bg-light: #f6f3ed;
+  --bg-card-light: #ece7de;
+  --text-dark: #110d0c;
+  --text-light: #f5f0e8;
+  --text-ink: #1c1410;
+  --border-light: rgba(255, 255, 255, 0.12);
+  --border-dark: rgba(28, 20, 16, 0.12);
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-serif); font-weight: 400; line-height: 1.1; }
+i, em { font-style: italic; }
+a { text-decoration: none; color: inherit; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+
+/* Navbar */
+.navbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 1.5rem 0;
+}
+.navbar .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.nav-link {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  border: 1px solid var(--border-light);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.nav-link:hover {
+  background: var(--text-light);
+  color: var(--bg-dark);
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  padding-top: 4rem; /* navbar offset */
+}
+.hero-bg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 1;
+}
+canvas { display: block; width: 100%; height: 100%; }
+.hero-content {
+  position: relative;
+  z-index: 10;
+  max-width: 800px;
+  padding: 0 1rem;
+}
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  display: inline-block;
+  margin-bottom: 2rem;
+}
+.hero h1 {
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+.hero p {
+  font-size: 1.125rem;
+  color: rgba(245, 240, 232, 0.8);
+  max-width: 600px;
+  margin: 0 auto 3rem auto;
+}
+.cta-button {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  background: var(--text-light);
+  color: var(--bg-dark);
+  padding: 1rem 2.5rem;
+  border-radius: 999px;
+  font-weight: 500;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  display: inline-block;
+}
+.cta-button:hover { transform: translateY(-2px); opacity: 0.9; }
+.hint-chip {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: rgba(245, 240, 232, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pulse-dot {
+  width: 6px; height: 6px;
+  background: var(--text-light);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 240, 232, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(245, 240, 232, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 240, 232, 0); }
+}
+
+/* Cream Section */
+.cream-section {
+  background-color: var(--bg-light);
+  color: var(--text-ink);
+  padding: 8rem 0;
+}
+.cream-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+@media(min-width: 900px) {
+  .cream-grid { grid-template-columns: 1fr 1fr; }
+}
+.cream-text h2 {
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  margin-bottom: 1.5rem;
+}
+.cream-text p {
+  font-size: 1.125rem;
+  color: rgba(28, 20, 16, 0.8);
+  max-width: 500px;
+}
+.canvas-card {
+  background: var(--bg-card-light);
+  border-radius: 1.5rem;
+  border: 1px solid var(--border-dark);
+  width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Features Section */
+.features-section {
+  background: var(--bg-dark);
+  padding: 8rem 0;
+}
+.features-section h2 {
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  margin-bottom: 4rem;
+  text-align: center;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+@media(min-width: 768px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media(min-width: 1024px) {
+  .features-grid { grid-template-columns: repeat(3, 1fr); gap: 3rem; }
+}
+.feature-card {
+  border-top: 1px solid var(--border-light);
+  padding-top: 1.5rem;
+}
+.feature-label {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+.feature-card p {
+  color: rgba(245, 240, 232, 0.7);
+  font-size: 1rem;
+}
+
+/* Stats Section */
+.stats-section {
+  background: var(--bg-dark);
+  padding: 8rem 0;
+  border-top: 1px solid var(--border-light);
+}
+.stats-section h2 {
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  margin-bottom: 4rem;
+  text-align: center;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4rem;
+  margin-bottom: 6rem;
+}
+@media(min-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.stat-item { text-align: center; }
+.stat-num-wrapper {
+  font-family: var(--font-serif);
+  font-size: clamp(4rem, 8vw, 7rem);
+  line-height: 1;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.stat-num-wrapper sup {
+  font-size: 0.4em;
+  margin-top: 0.5em;
+  font-family: var(--font-sans);
+}
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: rgba(245, 240, 232, 0.7);
+  max-width: 250px;
+  margin: 0 auto;
+}
+.bars-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.bar-row {
+  margin-bottom: 2rem;
+}
+.bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+.bar-track {
+  width: 100%;
+  height: 2px;
+  background: var(--border-light);
+  position: relative;
+}
+.bar-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: var(--text-light);
+  width: 0%;
+  transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border-light);
+  padding: 3rem 0;
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-brand {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.25rem;
+}
+.footer-version {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: rgba(245, 240, 232, 0.5);
+  margin-left: 1rem;
+}
+.footer-link {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="brand">Training Data Bot</div>
+    <a href="/app" class="nav-link">Get Started</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"><canvas id="heroCanvas"></canvas></div>
+  <div class="hero-content">
+    <div class="badge">AI Data Pipeline Engine</div>
+    <h1>The Geometry of <i>Fine-Tuning Data</i></h1>
+    <p>A high-throughput pipeline that transforms raw documents into premium LLM fine-tuning datasets. Chunk, generate, evaluate, and export — all in one automated workflow.</p>
+    <a href="/app" class="cta-button">Get Started</a>
+  </div>
+  <div class="hint-chip">
+    <div class="pulse-dot"></div>
+    Move your cursor to draw kinetic tether lines
+  </div>
+</section>
+
+<section class="cream-section">
+  <div class="container cream-grid">
+    <div class="cream-text">
+      <h2>Don't choose between speed and quality.</h2>
+      <p>Training Data Bot uses intelligent chunking, concurrent API workers, and SHA-256 cached responses to generate thousands of fine-tuning examples from any document — in seconds, not hours.</p>
+    </div>
+    <div class="canvas-card">
+      <canvas id="latticeCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="features-section">
+  <div class="container">
+    <h2>Built for production-grade fine-tuning.</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-label">Multi-Format Ingestion</span>
+        <p>Accepts PDF, TXT, Markdown, JSON, CSV, and HTML. Automatically detects format, extracts text, and normalizes Unicode.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-label">Intelligent Chunking</span>
+        <p>Sentence-boundary-aware chunking with configurable overlap. Ensures no concept is fragmented across training examples.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-label">Concurrent Generation</span>
+        <p>Up to 25 parallel API workers synthesize Q&A pairs, summaries, or classification labels from each chunk simultaneously.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-label">SQLite Response Cache</span>
+        <p>SHA-256 hashed response caching delivers 60x acceleration on repeat runs. Zero redundant API calls, zero wasted tokens.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-label">Quality Evaluation</span>
+        <p>Automated coherence, toxicity, and lexical diversity scoring. Filter below your quality threshold before export.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-label">Export Vault</span>
+        <p>One-click partitioned ZIP packages (80/10/10 Train/Val/Test splits) in JSONL, CSV, or Alpaca JSON format.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats-section" id="stats">
+  <div class="container">
+    <h2>Engineered for throughput.</h2>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-num-wrapper">
+          <span class="counter" data-target="60">0</span><sup>x</sup>
+        </div>
+        <p class="stat-label">faster on cached repeat runs compared to raw API calls</p>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num-wrapper">
+          <span class="counter" data-target="25">0</span>
+        </div>
+        <p class="stat-label">concurrent workers dispatching chunk prompts in parallel</p>
+      </div>
+    </div>
+    
+    <div class="bars-container">
+      <div class="bar-row">
+        <div class="bar-label"><span>Cache hit rate</span><span>97%</span></div>
+        <div class="bar-track"><div class="bar-fill chart-fill" data-width="97%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"><span>Quality pass rate</span><span>95%</span></div>
+        <div class="bar-track"><div class="bar-fill chart-fill" data-width="95%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"><span>Chunk coverage</span><span>100%</span></div>
+        <div class="bar-track"><div class="bar-fill chart-fill" data-width="100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"><span>Format support</span><span>6 formats</span></div>
+        <div class="bar-track"><div class="bar-fill chart-fill" data-width="100%"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div>
+      <span class="footer-brand">Training Data Bot</span>
+      <span class="footer-version">v1.0.0</span>
+    </div>
+    <a href="/app" class="footer-link">Get Started</a>
+  </div>
+</footer>
+
+<script>
+const TAU = Math.PI * 2;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+const heroCanvas = document.getElementById('heroCanvas');
+const heroCtx = heroCanvas.getContext('2d');
+let heroW = 0, heroH = 0;
+let particles = [];
+const PARTICLE_COUNT = window.innerWidth < 768 ? 45 : 95;
+let mouse = { x: null, y: null };
+
+function resizeHero() {
+  heroW = heroCanvas.parentElement.offsetWidth;
+  heroH = heroCanvas.parentElement.offsetHeight;
+  heroCanvas.width = heroW * DPR;
+  heroCanvas.height = heroH * DPR;
+  heroCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+function initHeroParticles() {
+  particles = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x: Math.random() * heroW,
+      y: Math.random() * heroH,
+      vx: (Math.random() - 0.5) * 0.7,
+      vy: (Math.random() - 0.5) * 0.7,
+      radius: 1.8 + Math.random() * 1.4
+    });
+  }
+}
+
+heroCanvas.addEventListener('mousemove', (e) => {
+  const rect = heroCanvas.getBoundingClientRect();
+  mouse.x = e.clientX - rect.left;
+  mouse.y = e.clientY - rect.top;
+});
+heroCanvas.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
+
+function updateHero() {
+  heroCtx.clearRect(0, 0, heroW, heroH);
+  const connectDist = Math.min(heroW, heroH) * 0.18;
+  const connectDistSq = connectDist * connectDist;
+  const pointerDist = Math.min(heroW, heroH) * 0.32;
+  const pointerDistSq = pointerDist * pointerDist;
+
+  heroCtx.lineWidth = 0.75;
+  heroCtx.strokeStyle = 'rgba(245, 240, 232, 1)';
+
+  for (let i = 0; i < particles.length; i++) {
+    const p1 = particles[i];
+    p1.vx += (Math.random() - 0.5) * 0.05;
+    p1.vy += (Math.random() - 0.5) * 0.05;
+    p1.vx *= 0.985;
+    p1.vy *= 0.985;
+    p1.x += p1.vx;
+    p1.y += p1.vy;
+
+    if (p1.x < -10) p1.x = heroW + 10;
+    if (p1.x > heroW + 10) p1.x = -10;
+    if (p1.y < -10) p1.y = heroH + 10;
+    if (p1.y > heroH + 10) p1.y = -10;
+
+    for (let j = i + 1; j < particles.length; j++) {
+      const p2 = particles[j];
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+      const dSq = dx * dx + dy * dy;
+      if (dSq < connectDistSq) {
+        const d = Math.sqrt(dSq);
+        heroCtx.globalAlpha = (1 - d / connectDist) * 0.18;
+        heroCtx.beginPath();
+        heroCtx.moveTo(p1.x, p1.y);
+        heroCtx.lineTo(p2.x, p2.y);
+        heroCtx.stroke();
+      }
+    }
+
+    if (mouse.x !== null && mouse.y !== null) {
+      const mdx = p1.x - mouse.x;
+      const mdy = p1.y - mouse.y;
+      const mDistSq = mdx * mdx + mdy * mdy;
+      if (mDistSq < pointerDistSq) {
+        const mDist = Math.sqrt(mDistSq);
+        heroCtx.strokeStyle = 'rgba(255, 255, 255, 1)';
+        heroCtx.globalAlpha = (1 - mDist / pointerDist) * 0.55;
+        heroCtx.lineWidth = 0.85;
+        heroCtx.beginPath();
+        heroCtx.moveTo(mouse.x, mouse.y);
+        heroCtx.lineTo(p1.x, p1.y);
+        heroCtx.stroke();
+        heroCtx.strokeStyle = 'rgba(245, 240, 232, 1)';
+        heroCtx.lineWidth = 0.75;
+      }
+    }
+  }
+
+  heroCtx.globalAlpha = 0.88;
+  heroCtx.fillStyle = 'rgba(245, 240, 232, 1)';
+  heroCtx.beginPath();
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    heroCtx.moveTo(p.x + p.radius, p.y);
+    heroCtx.arc(p.x, p.y, p.radius, 0, TAU);
+  }
+  heroCtx.fill();
+
+  if (mouse.x !== null && mouse.y !== null) {
+    heroCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    heroCtx.beginPath();
+    heroCtx.arc(mouse.x, mouse.y, 3, 0, TAU);
+    heroCtx.fill();
+  }
+  heroCtx.globalAlpha = 1;
+  requestAnimationFrame(updateHero);
+}
+
+const latticeCanvas = document.getElementById('latticeCanvas');
+const latticeCtx = latticeCanvas.getContext('2d');
+let latW = 0, latH = 0;
+let orbNodes = [];
+const ORB_NODES_COUNT = 32;
+let orbAngle = 0;
+
+function resizeLattice() {
+  latW = latticeCanvas.parentElement.offsetWidth;
+  latH = latticeCanvas.parentElement.offsetHeight;
+  latticeCanvas.width = latW * DPR;
+  latticeCanvas.height = latH * DPR;
+  latticeCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+function initOrbNodes() {
+  orbNodes = [];
+  const cx = latW * 0.5, cy = latH * 0.5;
+  for (let i = 0; i < ORB_NODES_COUNT; i++) {
+    orbNodes.push({
+      x: cx + (Math.random() - 0.5) * 50,
+      y: cy + (Math.random() - 0.5) * 50,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5
+    });
+  }
+}
+
+function updateLattice() {
+  latticeCtx.clearRect(0, 0, latW, latH);
+  const cx = latW * 0.5, cy = latH * 0.5;
+  const radiusX = Math.min(latW, latH) * 0.38;
+  const radiusY = Math.min(latW, latH) * 0.28;
+  orbAngle += 0.0035;
+  const cosA = Math.cos(orbAngle), sinA = Math.sin(orbAngle);
+
+  for (let i = 0; i < orbNodes.length; i++) {
+    const n = orbNodes[i];
+    n.vx += (Math.random() - 0.5) * 0.3;
+    n.vy += (Math.random() - 0.5) * 0.3;
+    n.vx *= 0.95;
+    n.vy *= 0.95;
+    const dx = n.x - cx, dy = n.y - cy;
+    const rotX = dx * cosA + dy * sinA;
+    const rotY = -dx * sinA + dy * cosA;
+    const normX = rotX / radiusX, normY = rotY / radiusY;
+    const hyp = Math.hypot(normX, normY);
+    if (hyp > 1) {
+      const excess = hyp - 1;
+      const fx = -(normX / hyp) * excess * 8;
+      const fy = -(normY / hyp) * excess * 8;
+      n.vx += fx * cosA - fy * sinA;
+      n.vy += fx * sinA + fy * cosA;
+    }
+    n.x += n.vx;
+    n.y += n.vy;
+  }
+
+  const edgeThreshold = Math.min(latW, latH) * 0.42;
+  const edgeThreshSq = edgeThreshold * edgeThreshold;
+  latticeCtx.lineWidth = 0.85;
+  latticeCtx.strokeStyle = 'rgba(28, 20, 16, 1)';
+  for (let i = 0; i < orbNodes.length; i++) {
+    for (let j = i + 1; j < orbNodes.length; j++) {
+      const dx = orbNodes[i].x - orbNodes[j].x;
+      const dy = orbNodes[i].y - orbNodes[j].y;
+      const dSq = dx * dx + dy * dy;
+      if (dSq < edgeThreshSq) {
+        const d = Math.sqrt(dSq);
+        latticeCtx.globalAlpha = (1 - d / edgeThreshold) * 0.35;
+        latticeCtx.beginPath();
+        latticeCtx.moveTo(orbNodes[i].x, orbNodes[i].y);
+        latticeCtx.lineTo(orbNodes[j].x, orbNodes[j].y);
+        latticeCtx.stroke();
+      }
+    }
+  }
+  latticeCtx.fillStyle = 'rgba(28, 20, 16, 0.85)';
+  latticeCtx.beginPath();
+  for (let i = 0; i < orbNodes.length; i++) {
+    latticeCtx.moveTo(orbNodes[i].x + 2.5, orbNodes[i].y);
+    latticeCtx.arc(orbNodes[i].x, orbNodes[i].y, 2.5, 0, TAU);
+  }
+  latticeCtx.fill();
+  latticeCtx.globalAlpha = 1;
+  requestAnimationFrame(updateLattice);
+}
+
+function animateCounters() {
+  document.querySelectorAll('.counter').forEach(counter => {
+    const target = parseInt(counter.dataset.target, 10);
+    const duration = 1500;
+    const start = performance.now();
+    function step(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      counter.textContent = Math.round(easeOut * target);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  setTimeout(() => {
+    document.querySelectorAll('.chart-fill').forEach(bar => {
+      bar.style.width = bar.dataset.width;
+    });
+  }, 300);
+}
+
+let animationsTriggered = false;
+const statsObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !animationsTriggered) {
+      animationsTriggered = true;
+      animateCounters();
+    }
+  });
+}, { threshold: 0.2 });
+
+window.addEventListener('resize', () => { resizeHero(); resizeLattice(); });
+window.addEventListener('DOMContentLoaded', () => {
+  resizeHero(); initHeroParticles(); updateHero();
+  resizeLattice(); initOrbNodes(); updateLattice();
+  
+  const statsSection = document.getElementById('stats');
+  if (statsSection) {
+    statsObserver.observe(statsSection);
+  }
+});
+</script>
+</body>
+</html>
